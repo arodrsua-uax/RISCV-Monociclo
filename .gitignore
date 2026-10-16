@@ -1,1 +1,12 @@
 sim/
+*.vcd
+*.fst
+*.vvp
+*.log
+*.json
+# Vivado
+*.bit
+.Xil/
+*.runs/
+*.cache/
+*.jou
