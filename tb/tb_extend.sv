@@ -23,10 +23,16 @@ module tb_extend;
     check(32'hFE208EE3,  32'hFFFFFFFC, 6);  // beq x1, x2, -4
     check(32'h008000EF,  32'h00000008, 7);  // jal x1, +8
     check(32'hFFDFF0EF,  32'hFFFFFFFC, 8);  // jal x1, -4
-  //  check(32'h123452B7,  32'h12345000, 9);   // lui   x5, 0x12345
-  //  check(32'hFFFFF0B7,  32'hFFFFF000, 10);  // lui   x1, 0xFFFFF
-  //  check(32'h00010317,  32'h00010000, 11);  // auipc x6, 0x10
-  //  check(32'h80000197,  32'h80000000, 12);  // auipc x3, 0x80000
+    check(32'h123452B7,  32'h12345000, 9);   // lui   x5, 0x12345
+    check(32'hFFFFF0B7,  32'hFFFFF000, 10);  // lui   x1, 0xFFFFF
+    check(32'h00010317,  32'h00010000, 11);  // auipc x6, 0x10
+    check(32'h80000197,  32'h80000000, 12);  // auipc x3, 0x80000
+
+    check(32'h7E208FE3, 32'h00000FFE, 13);  // beq +4094 (imm[11] = 1)
+    check(32'h80208063, 32'hFFFFF000, 14);  // beq -4096 (imm[12] = 1)
+    check(32'h7FFFF0EF, 32'h000FFFFE, 15);  // jal +1048574 (imm[19:12] todo a 1)
+    check(32'h800000EF, 32'hFFF00000, 16);  // jal -1048576 (solo imm[20])
+
 
     $display("Test extend terminado");
     $finish;

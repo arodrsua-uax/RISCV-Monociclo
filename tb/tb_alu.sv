@@ -37,7 +37,15 @@ module tb_alu;
     check(32'h80000000, 32'd4,        4'b1011, 32'hF8000000,  1'b0, 17); // sra (extiende signo)
     check(32'hFFFFFFFF, 32'd1,        4'b1100, 32'd0,         1'b1, 18); // sltu: 0xFFFFFFFF < 1 es falso
     check(32'd1,        32'hFFFFFFFF, 4'b1100, 32'd1,         1'b0, 19); // sltu: 1 < 0xFFFFFFFF es cierto
-   
+    check(32'd1,        32'd33,       4'b1001, 32'd2,         1'b0, 20); // sll: solo b[4:0], 33 -> 1
+    check(32'h80000000, 32'd32,       4'b1010, 32'h80000000,  1'b0, 21); // srl: 32 -> 0 bits
+    check(32'h40000000, 32'd4,        4'b1011, 32'h04000000,  1'b0, 22); // sra de positivo
+    check(32'h7FFFFFFF, 32'h80000000, 4'b0101, 32'd0,         1'b1, 23); // slt: max pos < min neg es falso
+    check(32'h80000000, 32'h7FFFFFFF, 4'b0101, 32'd1,         1'b0, 24); // slt: min neg < max pos
+    check(32'h7FFFFFFF, 32'h80000000, 4'b1100, 32'd1,         1'b0, 25); // sltu: opuesto
+    check(32'h80000000, 32'h7FFFFFFF, 4'b1100, 32'd0,         1'b1, 26); // sltu
+    check(32'h80000000, 32'd1,        4'b0001, 32'h7FFFFFFF,  1'b0, 27); // sub con desbordamiento
+
     $display("Test alu terminado");
     $finish;
   end

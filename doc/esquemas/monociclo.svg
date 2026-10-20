@@ -1,0 +1,300 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="920" viewBox="0 0 1400 920" font-family="Helvetica, Arial, sans-serif">
+  <title>RISC-V RV32I monociclo</title>
+  <defs>
+    <marker id="a" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#222"/>
+    </marker>
+    <marker id="ac" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#1565c0"/>
+    </marker>
+    <style>
+      .w   { stroke: #222; stroke-width: 1.6; fill: none; stroke-linejoin: round; }
+      .bus { stroke: #222; stroke-width: 3.2; fill: none; }
+      .c   { stroke: #1565c0; stroke-width: 1.6; fill: none; stroke-linejoin: round; }
+      .wa  { marker-end: url(#a); }
+      .ca  { marker-end: url(#ac); }
+      .blk { fill: #f4f6f8; stroke: #222; stroke-width: 1.8; }
+      .ctl { fill: #e3edfb; stroke: #1565c0; stroke-width: 1.8; }
+      .box { fill: #f7faff; stroke: #1565c0; stroke-width: 1.4; stroke-dasharray: 6 4; }
+      .clk { fill: none; stroke: #222; stroke-width: 1.4; }
+      .dot { fill: #222; }
+      .cdot { fill: #1565c0; }
+      text { fill: #222; font-size: 11px; }
+      .t   { font-size: 13px; font-weight: bold; text-anchor: middle; }
+      .ts  { font-size: 11px; text-anchor: middle; fill: #555; }
+      .p   { font-size: 10.5px; fill: #444; }
+      .pe  { font-size: 10.5px; fill: #444; text-anchor: end; }
+      .pm  { font-size: 10.5px; fill: #444; text-anchor: middle; }
+      .n   { font-size: 11px; font-style: italic; }
+      .ne  { font-size: 11px; font-style: italic; text-anchor: end; }
+      .cn  { font-size: 11px; font-style: italic; fill: #1565c0; }
+      .ct  { font-size: 13px; font-weight: bold; text-anchor: middle; fill: #1565c0; }
+      .ci  { font-size: 10px; fill: #1565c0; }
+      .bits{ font-size: 10.5px; fill: #666; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="920" fill="#ffffff"/>
+
+  <!-- Título -->
+  <text x="20" y="32" style="font-size:20px;font-weight:bold">RISC-V RV32I · monociclo</text>
+  <text x="20" y="52" style="font-size:12px;fill:#555">Señales con los nombres del RTL (rtl/)</text>
+
+  <!-- ===================== UNIDAD DE CONTROL ===================== -->
+  <rect class="box" x="440" y="30" width="200" height="250" rx="8"/>
+  <text class="ct" x="540" y="49">Unidad de control</text>
+  <text x="636" y="274" style="font-size:10px;fill:#1565c0;text-anchor:end">controller</text>
+
+  <rect class="ctl" x="465" y="60" width="150" height="125" rx="4"/>
+  <text class="ct" x="555" y="118">controldec</text>
+  <text class="ts" x="555" y="134" style="fill:#1565c0">decodificador</text>
+  <text class="p" x="470" y="94">op</text>
+  <text class="p" x="470" y="124">funct3</text>
+  <text class="p" x="470" y="154">funct7[5]</text>
+
+  <rect class="ctl" x="465" y="215" width="150" height="50" rx="4"/>
+  <text class="ct" x="540" y="237" style="font-size:12px">Lógica de salto</text>
+  <text class="ci" x="540" y="254" style="text-anchor:middle">Taken según funct3 y Zero</text>
+
+  <!-- señales internas del controller -->
+  <path class="c ca" d="M490 185 V215"/>
+  <path class="c ca" d="M540 185 V215"/>
+  <path class="c ca" d="M590 185 V215"/>
+  <text class="ci" x="493" y="203">Branch</text>
+  <text class="ci" x="543" y="203">Jump</text>
+  <text class="ci" x="593" y="203">Jalr</text>
+
+  <!-- ===================== BUS Instr ===================== -->
+  <path class="bus" d="M340 425 H380"/>
+  <path class="bus" d="M380 90 V625"/>
+  <text class="n" x="344" y="419">Instr</text>
+
+  <!-- campos hacia control -->
+  <path class="w wa" d="M380 90 H465"/>
+  <path class="w wa" d="M380 120 H465"/>
+  <path class="w wa" d="M380 150 H465"/>
+  <path class="w wa" d="M380 240 H465"/>
+  <text class="bits" x="388" y="86">[6:0]</text>
+  <text class="bits" x="388" y="116">[14:12]</text>
+  <text class="bits" x="388" y="146">[30]</text>
+  <text class="bits" x="388" y="236">[14:12]</text>
+
+  <!-- campos hacia banco de registros y extensión -->
+  <path class="w wa" d="M380 360 H460"/>
+  <path class="w wa" d="M380 400 H460"/>
+  <path class="w wa" d="M380 490 H460"/>
+  <path class="w wa" d="M380 625 H460"/>
+  <text class="bits" x="388" y="356">[19:15]</text>
+  <text class="bits" x="388" y="396">[24:20]</text>
+  <text class="bits" x="388" y="486">[11:7]</text>
+  <text class="bits" x="424" y="621">[31:0]</text>
+
+  <!-- ===================== PC ===================== -->
+  <!-- pcmux -->
+  <polygon class="blk" points="80,370 110,385 110,465 80,480"/>
+  <text class="p" x="84" y="399">00</text>
+  <text class="p" x="84" y="429">01</text>
+  <text class="p" x="84" y="459">10</text>
+  <path class="w wa" d="M110 425 H150"/>
+  <text class="n" x="114" y="419" style="font-size:10px">PCNext</text>
+
+  <!-- pcreg -->
+  <rect class="blk" x="150" y="395" width="30" height="60"/>
+  <text class="t" x="165" y="430" style="font-size:12px">PC</text>
+  <polyline class="clk" points="158,455 165,447 172,455"/>
+
+  <!-- PC hacia imem y resto -->
+  <path class="w wa" d="M180 425 H230"/>
+  <text class="n" x="209" y="419">PC</text>
+  <path class="w wa" d="M205 425 V715 H250"/>
+  <path class="w" d="M205 680 H630"/>
+  <path class="w wa" d="M630 680 V390 H650"/>
+  <path class="w wa" d="M630 680 V765 H700"/>
+
+  <!-- pcadd4 -->
+  <polygon class="blk" points="250,700 290,720 290,760 250,780 250,750 260,740 250,730"/>
+  <text class="t" x="276" y="745">+</text>
+  <text x="236" y="769" style="text-anchor:end;font-size:12px">4</text>
+  <path class="w wa" d="M240 765 H250"/>
+
+  <!-- PCPlus4: a pcmux y a resultmux -->
+  <path class="w wa" d="M290 740 H310 V865 H30 V395 H80"/>
+  <path class="w wa" d="M310 805 H1260 V460 H1290"/>
+  <text class="n" x="316" y="772">PCPlus4</text>
+  <text class="n" x="100" y="861">PCPlus4</text>
+  <text class="n" x="1150" y="801">PCPlus4</text>
+
+  <!-- pcaddbranch (PCTarget) -->
+  <polygon class="blk" points="700,700 740,720 740,760 700,780 700,750 710,740 700,730"/>
+  <text class="t" x="726" y="745">+</text>
+  <path class="w wa" d="M740 740 H770 V845 H45 V425 H80"/>
+  <text class="n" x="776" y="790">PCTarget</text>
+  <text class="n" x="100" y="841">PCTarget</text>
+
+  <!-- ===================== MEMORIA DE INSTRUCCIONES ===================== -->
+  <rect class="blk" x="230" y="370" width="110" height="130"/>
+  <text class="p" x="236" y="429">A</text>
+  <text class="pe" x="334" y="429">RD</text>
+  <text class="t" x="285" y="447" style="font-size:12px">Memoria de</text>
+  <text class="t" x="285" y="462" style="font-size:12px">instrucciones</text>
+  <text class="ts" x="285" y="480">imem</text>
+
+  <!-- ===================== BANCO DE REGISTROS ===================== -->
+  <rect class="blk" x="460" y="330" width="140" height="220"/>
+  <text class="p" x="466" y="364">A1</text>
+  <text class="p" x="466" y="404">A2</text>
+  <text class="p" x="466" y="494">A3</text>
+  <text class="p" x="466" y="524">WD3</text>
+  <text class="pm" x="580" y="345">WE3</text>
+  <text class="pe" x="594" y="364">RD1</text>
+  <text class="pe" x="594" y="454">RD2</text>
+  <text class="t" x="530" y="425" style="font-size:12px">Banco de</text>
+  <text class="t" x="530" y="440" style="font-size:12px">registros</text>
+  <text class="ts" x="530" y="456">regfile</text>
+  <polyline class="clk" points="523,550 530,542 537,550"/>
+
+  <path class="w wa" d="M600 360 H650"/>
+  <text class="n" x="604" y="355">RegA</text>
+  <path class="w wa" d="M600 450 H700"/>
+  <text class="n" x="634" y="446">WriteData</text>
+  <path class="w wa" d="M620 450 V580 H900 V510 H920"/>
+  <text class="n" x="760" y="576">WriteData</text>
+
+  <!-- ===================== EXTENSIÓN DEL INMEDIATO ===================== -->
+  <rect class="blk" x="460" y="600" width="140" height="50"/>
+  <text class="t" x="530" y="622" style="font-size:12px">Extend</text>
+  <text class="ts" x="530" y="639">ext · tipo según op</text>
+  <path class="w wa" d="M600 625 H1275 V490 H1290"/>
+  <path class="w wa" d="M690 625 V480 H700"/>
+  <path class="w wa" d="M680 625 V715 H700"/>
+  <text class="n" x="700" y="620">ImmExt</text>
+
+  <!-- ===================== MUXES DE OPERANDOS ===================== -->
+  <polygon class="blk" points="650,340 680,352 680,398 650,410"/>
+  <text class="p" x="655" y="364">0</text>
+  <text class="p" x="655" y="394">1</text>
+  <path class="w wa" d="M680 375 H780"/>
+  <text class="n" x="735" y="370">SrcA</text>
+
+  <polygon class="blk" points="700,430 730,442 730,488 700,500"/>
+  <text class="p" x="705" y="454">0</text>
+  <text class="p" x="705" y="484">1</text>
+  <path class="w wa" d="M730 465 H780"/>
+  <text class="n" x="740" y="460">SrcB</text>
+
+  <!-- ===================== ALU ===================== -->
+  <polygon class="blk" points="780,340 840,370 840,470 780,500 780,440 795,420 780,400"/>
+  <text class="t" x="818" y="425">ALU</text>
+  <path class="w wa" d="M840 430 H1030"/>
+  <text class="n" x="886" y="424">ALUResult</text>
+  <text class="n" x="966" y="424">DataAdr</text>
+
+  <!-- ALUResult hacia resultmux -->
+  <path class="w wa" d="M865 430 V330 H1270 V400 H1290"/>
+  <text class="n" x="1130" y="325">ALUResult</text>
+
+  <!-- JalrTarget hacia pcmux -->
+  <path class="w wa" d="M880 430 V825 H60 V455 H80"/>
+  <text class="ne" x="874" y="660">JalrTarget</text>
+  <text class="bits" x="874" y="675" style="text-anchor:end">{ALUResult[31:1], 0}</text>
+  <text class="n" x="100" y="821">JalrTarget</text>
+
+  <!-- ===================== ACCESO A MEMORIA DE DATOS ===================== -->
+  <path class="w wa" d="M960 430 V480"/>
+  <text class="bits" x="964" y="465">[1:0]</text>
+
+  <rect class="blk" x="920" y="480" width="80" height="80"/>
+  <text class="t" x="960" y="519" style="font-size:11px">storealign</text>
+  <text class="ts" x="960" y="534" style="font-size:10px">sb · sh · sw</text>
+  <path class="w wa" d="M960 590 V560"/>
+  <text class="bits" x="960" y="604" style="text-anchor:middle">Instr[14:12]</text>
+  <path class="w wa" d="M1000 505 H1030"/>
+  <path class="w wa" d="M1000 540 H1030"/>
+
+  <rect class="blk" x="1030" y="380" width="110" height="190"/>
+  <text class="p" x="1036" y="434">A</text>
+  <text class="p" x="1036" y="509">WD</text>
+  <text class="p" x="1036" y="544">ByteEn</text>
+  <text class="pm" x="1100" y="396">WE</text>
+  <text class="pe" x="1134" y="434">RD</text>
+  <text class="t" x="1085" y="468" style="font-size:12px">Memoria</text>
+  <text class="t" x="1085" y="483" style="font-size:12px">de datos</text>
+  <text class="ts" x="1085" y="499">dmem</text>
+  <polyline class="clk" points="1078,570 1085,562 1092,570"/>
+
+  <path class="w wa" d="M1140 430 H1170"/>
+  <rect class="blk" x="1170" y="405" width="70" height="50"/>
+  <text class="t" x="1205" y="434" style="font-size:11px">loadext</text>
+  <path class="w wa" d="M1205 485 V455"/>
+  <text class="bits" x="1205" y="497" style="text-anchor:middle">Instr[14:12]</text>
+  <text class="bits" x="1205" y="510" style="text-anchor:middle">ALUResult[1:0]</text>
+
+  <path class="w wa" d="M1240 430 H1290"/>
+  <text class="n" x="1242" y="424" style="font-size:10px">ReadData</text>
+
+  <!-- ===================== MUX DE RESULTADO ===================== -->
+  <polygon class="blk" points="1290,380 1320,395 1320,495 1290,510"/>
+  <text class="p" x="1294" y="404">00</text>
+  <text class="p" x="1294" y="434">01</text>
+  <text class="p" x="1294" y="464">10</text>
+  <text class="p" x="1294" y="494">11</text>
+
+  <!-- Result de vuelta al banco de registros -->
+  <path class="w wa" d="M1320 445 H1350 V895 H420 V520 H460"/>
+  <text class="n" x="1356" y="470">Result</text>
+  <text class="n" x="700" y="890">Result</text>
+
+  <!-- ===================== SEÑALES DE CONTROL ===================== -->
+  <path class="c ca" d="M615 72 H1305 V387"/>
+  <path class="c ca" d="M615 92 H1100 V380"/>
+  <path class="c ca" d="M615 112 H810 V355"/>
+  <path class="c ca" d="M615 132 H715 V436"/>
+  <path class="c ca" d="M615 152 H665 V346"/>
+  <path class="c ca" d="M615 172 H650 V310 H580 V330"/>
+  <text class="cn" x="646" y="68">ResultSrc[1:0]</text>
+  <text class="cn" x="646" y="88">MemWrite</text>
+  <text class="cn" x="646" y="108">ALUControl[3:0]</text>
+  <text class="cn" x="646" y="128">ALUSrc</text>
+  <text class="cn" x="646" y="148">ASrc</text>
+  <text class="cn" x="588" y="306">RegWrite</text>
+
+  <path class="c ca" d="M540 265 V295 H95 V377"/>
+  <text class="cn" x="100" y="290">PCSrc[1:0]</text>
+
+  <path class="c ca" d="M840 385 H850 V240 H615"/>
+  <text class="cn" x="855" y="300">Zero</text>
+
+  <!-- ===================== PUNTOS DE CONEXIÓN ===================== -->
+  <g class="dot">
+    <circle cx="380" cy="120" r="3.2"/>
+    <circle cx="380" cy="150" r="3.2"/>
+    <circle cx="380" cy="240" r="3.2"/>
+    <circle cx="380" cy="360" r="3.2"/>
+    <circle cx="380" cy="400" r="3.2"/>
+    <circle cx="380" cy="425" r="3.2"/>
+    <circle cx="380" cy="490" r="3.2"/>
+    <circle cx="205" cy="425" r="3"/>
+    <circle cx="205" cy="680" r="3"/>
+    <circle cx="630" cy="680" r="3"/>
+    <circle cx="310" cy="805" r="3"/>
+    <circle cx="620" cy="450" r="3"/>
+    <circle cx="680" cy="625" r="3"/>
+    <circle cx="690" cy="625" r="3"/>
+    <circle cx="865" cy="430" r="3"/>
+    <circle cx="880" cy="430" r="3"/>
+    <circle cx="960" cy="430" r="3"/>
+  </g>
+
+  <!-- ===================== LEYENDA ===================== -->
+  <rect x="900" y="660" width="345" height="128" rx="6" fill="#fafafa" stroke="#bbb"/>
+  <path class="w" d="M915 680 H945"/>
+  <text x="955" y="684">Ruta de datos (32 bits salvo indicación)</text>
+  <path class="c" d="M915 700 H945"/>
+  <text x="955" y="704">Control (ancho entre corchetes)</text>
+  <circle class="dot" cx="930" cy="720" r="3"/>
+  <text x="955" y="724">Conexión · los cruces sin punto no conectan</text>
+  <polyline class="clk" points="923,744 930,736 937,744"/>
+  <text x="955" y="744">Síncrono, flanco de subida de clk (rst_n omitido)</text>
+  <text x="915" y="764" style="font-size:10.5px">PCSrc: 00 PC+4 · 01 PCTarget · 10 JalrTarget</text>
+  <text x="915" y="780" style="font-size:10.5px">ResultSrc: 00 ALUResult · 01 ReadData · 10 PC+4 · 11 ImmExt</text>
+</svg>
