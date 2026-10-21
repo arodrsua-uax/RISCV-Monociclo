@@ -114,15 +114,16 @@ module riscv_pipe #(
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
 
-   logic [1:0]  ForwardAE, ForwardBE;
+  logic [1:0]  ForwardAE, ForwardBE;
   logic [31:0] FwdAE, FwdBE;
-
+  logic [31:0] FwdValM;
   forwardunit fu (.Rs1E(Rs1E), .Rs2E(Rs2E), .RdM(RdM), .RdW(RdW),
                   .RegWriteM(RegWriteM), .RegWriteW(RegWriteW),
                   .ForwardAE(ForwardAE), .ForwardBE(ForwardBE));
 
-  mux3 fwdamux (.d0(RD1E), .d1(ResultW), .d2(ALUResultM), .sel3(ForwardAE), .y3(FwdAE));
-  mux3 fwdbmux (.d0(RD2E), .d1(ResultW), .d2(ALUResultM), .sel3(ForwardBE), .y3(FwdBE));
+  
+  mux3 fwdamux (.d0(RD1E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardAE), .y3(FwdAE));
+  mux3 fwdbmux (.d0(RD2E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardBE), .y3(FwdBE));
 
   mux2 srcamux (.d0(FwdAE), .d1(PCE),     .sel2(ASrcE),   .y2(SrcAE));
   mux2 srcbmux (.d0(FwdBE), .d1(ImmExtE), .sel2(ALUSrcE), .y2(SrcBE));
@@ -156,12 +157,15 @@ module riscv_pipe #(
   logic [1:0]  ResultSrcM;
   logic [2:0]  funct3M;
   logic [139:0] exmem_d, exmem_q;
+  
 
   assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, ImmExtE, RdE,
                     RegWriteE, MemWriteE, ResultSrcE, funct3E};
   flopr #(140) exmem (.clk(clk), .rst_n(rst_n), .d(exmem_d), .q(exmem_q));
   assign {ALUResultM, WriteDataM, PCPlus4M, ImmExtM, RdM,
           RegWriteM, MemWriteM, ResultSrcM, funct3M} = exmem_q;
+  assign FwdValM = (ResultSrcM == 2'b11) ? ImmExtM :
+                   (ResultSrcM == 2'b10) ? PCPlus4M : ALUResultM;
 
   // ================= Etapa MEM =================
   logic [31:0] MemWriteData, MemReadData, ReadDataM;
