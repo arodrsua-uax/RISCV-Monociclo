@@ -68,38 +68,62 @@ module riscv_pipe #(
     .rd_data(ResultW), .rd_write_en(RegWriteW),
     .rs1_data(RD1D), .rs2_data(RD2D)
   );
+  
+  logic [31:0] RD1Dfix, RD2Dfix;
+  assign RD1Dfix = (RegWriteW && RdW != 0 && RdW == rs1D) ? ResultW : RD1D;
+  assign RD2Dfix = (RegWriteW && RdW != 0 && RdW == rs2D) ? ResultW : RD2D;
 
   extend ext (.instr(InstrD), .immext(ImmExtD));
 
   // ============== Registro ID/EX ==============
   logic [31:0] RD1E, RD2E, ImmExtE, PCE, PCPlus4E;
   logic [4:0]  RdE;
+  logic [4:0] Rs1E, Rs2E;
   logic        RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE;
   logic [1:0]  ResultSrcE;
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
-  logic [180:0] idex_d, idex_q;
-  
+  logic [190:0] idex_d, idex_q;
+
+  assign idex_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD, rs1D, rs2D,
+                   RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
+                   ResultSrcD, ALUControlD, funct3D};
+
+  floprc #(191) idex (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idex_d), .q(idex_q));
+
+  assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE, Rs1E, Rs2E,
+          RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE,
+          ResultSrcE, ALUControlE, funct3E} = idex_q;
   
   
   
 
   
-  floprc #(181) idex (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idex_d), .q(idex_q));
   
 
     // ================= Etapa EX =================
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
 
-  mux2 srcamux (.d0(RD1E), .d1(PCE),     .sel2(ASrcE),   .y2(SrcAE));
-  mux2 srcbmux (.d0(RD2E), .d1(ImmExtE), .sel2(ALUSrcE), .y2(SrcBE));
+   logic [1:0]  ForwardAE, ForwardBE;
+  logic [31:0] FwdAE, FwdBE;
+
+  forwardunit fu (.Rs1E(Rs1E), .Rs2E(Rs2E), .RdM(RdM), .RdW(RdW),
+                  .RegWriteM(RegWriteM), .RegWriteW(RegWriteW),
+                  .ForwardAE(ForwardAE), .ForwardBE(ForwardBE));
+
+  mux3 fwdamux (.d0(RD1E), .d1(ResultW), .d2(ALUResultM), .sel3(ForwardAE), .y3(FwdAE));
+  mux3 fwdbmux (.d0(RD2E), .d1(ResultW), .d2(ALUResultM), .sel3(ForwardBE), .y3(FwdBE));
+
+  mux2 srcamux (.d0(FwdAE), .d1(PCE),     .sel2(ASrcE),   .y2(SrcAE));
+  mux2 srcbmux (.d0(FwdBE), .d1(ImmExtE), .sel2(ALUSrcE), .y2(SrcBE));
+  assign WriteDataE = FwdBE;
 
   alu alu0 (.a(SrcAE), .b(SrcBE), .alucontrol(ALUControlE),
             .result(ALUResultE), .zero(ZeroE));
 
   adder pcaddbranch (.a(PCE), .b(ImmExtE), .sum(PCTargetE));
-  assign WriteDataE = RD2E;
+
 
     always_comb begin
     case (funct3E)
@@ -154,14 +178,5 @@ module riscv_pipe #(
   mux4 resultmux (.d0(ALUResultW), .d1(ReadDataW), .d2(PCPlus4W), .d3(ImmExtW),
                   .sel4(ResultSrcW), .y4(ResultW));
 
-  assign idex_d = {RD1D, RD2D, ImmExtD, PCD, PCPlus4D, rdD,
-                   RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
-                   ResultSrcD, ALUControlD, funct3D};
-
   
-
-  assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE,
-          RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE,
-          ResultSrcE, ALUControlE, funct3E} = idex_q;
-
 endmodule
