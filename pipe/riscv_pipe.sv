@@ -51,9 +51,7 @@ module riscv_pipe #(
   logic [6:0] opD;
 
 
-  assign RegWriteW = 1'b0;     // provisional
-  assign RdW       = 5'd0;     // provisional
-  assign ResultW   = 32'd0;    // provisional
+
   assign opD = InstrD[6:0];
 
   regfile rf (
@@ -73,6 +71,57 @@ module riscv_pipe #(
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
   logic [180:0] idex_d, idex_q;
+
+    // ================= Etapa EX =================
+  logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE, PCTargetE;
+  logic        ZeroE;
+
+  mux2 srcamux (.d0(RD1E), .d1(PCE),     .sel2(ASrcE),   .y2(SrcAE));
+  mux2 srcbmux (.d0(RD2E), .d1(ImmExtE), .sel2(ALUSrcE), .y2(SrcBE));
+
+  alu alu0 (.a(SrcAE), .b(SrcBE), .alucontrol(ALUControlE),
+            .result(ALUResultE), .zero(ZeroE));
+
+  adder pcaddbranch (.a(PCE), .b(ImmExtE), .sum(PCTargetE));
+  assign WriteDataE = RD2E;
+
+  // ============== Registro EX/MEM ==============
+  logic [31:0] ALUResultM, WriteDataM, PCPlus4M, ImmExtM;
+  logic [4:0]  RdM;
+  logic        RegWriteM, MemWriteM;
+  logic [1:0]  ResultSrcM;
+  logic [2:0]  funct3M;
+  logic [139:0] exmem_d, exmem_q;
+
+  assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, ImmExtE, RdE,
+                    RegWriteE, MemWriteE, ResultSrcE, funct3E};
+  flopr #(140) exmem (.clk(clk), .rst_n(rst_n), .d(exmem_d), .q(exmem_q));
+  assign {ALUResultM, WriteDataM, PCPlus4M, ImmExtM, RdM,
+          RegWriteM, MemWriteM, ResultSrcM, funct3M} = exmem_q;
+
+  // ================= Etapa MEM =================
+  logic [31:0] MemWriteData, MemReadData, ReadDataM;
+  logic [3:0]  ByteEn;
+
+  storealign sa (.funct3(funct3M), .addr(ALUResultM[1:0]), .rs2_data(WriteDataM),
+                 .write_data(MemWriteData), .byte_en(ByteEn));
+  dmem dm (.clk(clk), .mem_write_en(MemWriteM), .byte_en(ByteEn), .addr(ALUResultM),
+           .write_data(MemWriteData), .read_data(MemReadData));
+  loadext le (.funct3(funct3M), .addr(ALUResultM[1:0]), .mem_data(MemReadData),
+              .read_data(ReadDataM));
+
+  // ============== Registro MEM/WB ==============
+  logic [31:0] ALUResultW, ReadDataW, PCPlus4W, ImmExtW;
+  logic [1:0]  ResultSrcW;
+  logic [135:0] memwb_d, memwb_q;
+
+  assign memwb_d = {ALUResultM, ReadDataM, PCPlus4M, ImmExtM, RdM, RegWriteM, ResultSrcM};
+  flopr #(136) memwb (.clk(clk), .rst_n(rst_n), .d(memwb_d), .q(memwb_q));
+  assign {ALUResultW, ReadDataW, PCPlus4W, ImmExtW, RdW, RegWriteW, ResultSrcW} = memwb_q;
+
+  // ================= Etapa WB =================
+  mux4 resultmux (.d0(ALUResultW), .d1(ReadDataW), .d2(PCPlus4W), .d3(ImmExtW),
+                  .sel4(ResultSrcW), .y4(ResultW));
 
   assign idex_d = {RD1D, RD2D, ImmExtD, PCD, PCPlus4D, rdD,
                    RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
