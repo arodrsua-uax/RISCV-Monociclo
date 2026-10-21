@@ -14,7 +14,8 @@ module riscv_pipe #(
   mux3 pcmux (.d0(PCPlus4F), .d1(PCTargetE), .d2(JalrTargetE),
               .sel3(PCSrcE), .y3(PCNextF));
 
-  flopr pcreg  (.clk(clk), .rst_n(rst_n), .d(PCNextF), .q(PCF));
+  floprec pcreg  (.clk(clk), .rst_n(rst_n), .en(!StallF), .clr(1'b0),
+                .d(PCNextF), .q(PCF));
   adder pcadd4 (.a(PCF), .b(32'd4), .sum(PCPlus4F));
   imem #(.INIT_FILE(INIT_FILE)) im (.addr(PCF), .instr(InstrF));
 
@@ -22,10 +23,18 @@ module riscv_pipe #(
   logic [31:0] InstrD, PCD, PCPlus4D;
   logic [95:0] ifid_d, ifid_q;
   logic FlushD, FlushE;
-  assign FlushD = (PCSrcE != 2'b00);
-  assign FlushE = (PCSrcE != 2'b00);
 
-  floprc #(96)  ifid (.clk(clk), .rst_n(rst_n), .clr(FlushD), .d(ifid_d), .q(ifid_q));
+  logic StallF, StallD, lwStall;
+  assign lwStall = (ResultSrcE == 2'b01) && (RdE != 0) && (RdE == rs1D || RdE == rs2D);
+  assign StallF  = lwStall;
+  assign StallD  = lwStall;
+
+
+  assign FlushD = (PCSrcE != 2'b00);
+    assign FlushE = (PCSrcE != 2'b00) || lwStall;
+
+ floprec #(96)  ifid  (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(FlushD),
+                      .d(ifid_d), .q(ifid_q));
   
   assign ifid_d = {InstrF, PCF, PCPlus4F};
   assign {InstrD, PCD, PCPlus4D} = ifid_q;
@@ -171,7 +180,10 @@ module riscv_pipe #(
   logic [135:0] memwb_d, memwb_q;
 
   assign memwb_d = {ALUResultM, ReadDataM, PCPlus4M, ImmExtM, RdM, RegWriteM, ResultSrcM};
+
   flopr #(136) memwb (.clk(clk), .rst_n(rst_n), .d(memwb_d), .q(memwb_q));
+
+
   assign {ALUResultW, ReadDataW, PCPlus4W, ImmExtW, RdW, RegWriteW, ResultSrcW} = memwb_q;
 
   // ================= Etapa WB =================
