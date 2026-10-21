@@ -5,6 +5,7 @@ module run_pipe;
 
   riscv_pipe dut (.clk(clk), .rst_n(rst_n));
 
+
   always #5 clk = ~clk;
 
   initial begin
@@ -17,6 +18,7 @@ module run_pipe;
     rst_n = 0;
     #1;
     for (i = 0; i < 64; i = i + 1) dut.im.RAM[i] = 32'h00000013;  // nop
+    for (i = 0; i < 64; i = i + 1) dut.dm.RAM[i] = 32'd0;
     $readmemh(prog, dut.im.RAM);
     #11;
     rst_n = 1;
