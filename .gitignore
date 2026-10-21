@@ -10,3 +10,4 @@ sim/
 *.runs/
 *.cache/
 *.jou
+fuzz/
