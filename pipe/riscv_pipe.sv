@@ -6,9 +6,13 @@ module riscv_pipe #(
 );
 
   // ================= Etapa IF =================
+  logic [31:0] PCTargetE, JalrTargetE;
+  logic [1:0]  PCSrcE;
+  logic        ZeroE, TakenE;
   logic [31:0] PCF, PCNextF, PCPlus4F, InstrF;
 
-  assign PCNextF = PCPlus4F;    // por ahora, siempre PC+4
+  mux3 pcmux (.d0(PCPlus4F), .d1(PCTargetE), .d2(JalrTargetE),
+              .sel3(PCSrcE), .y3(PCNextF));
 
   flopr pcreg  (.clk(clk), .rst_n(rst_n), .d(PCNextF), .q(PCF));
   adder pcadd4 (.a(PCF), .b(32'd4), .sum(PCPlus4F));
@@ -17,9 +21,13 @@ module riscv_pipe #(
   // ============== Registro IF/ID ==============
   logic [31:0] InstrD, PCD, PCPlus4D;
   logic [95:0] ifid_d, ifid_q;
+  logic FlushD, FlushE;
+  assign FlushD = (PCSrcE != 2'b00);
+  assign FlushE = (PCSrcE != 2'b00);
 
+  floprc #(96)  ifid (.clk(clk), .rst_n(rst_n), .clr(FlushD), .d(ifid_d), .q(ifid_q));
+  
   assign ifid_d = {InstrF, PCF, PCPlus4F};
-  flopr #(96) ifid (.clk(clk), .rst_n(rst_n), .d(ifid_d), .q(ifid_q));
   assign {InstrD, PCD, PCPlus4D} = ifid_q;
 
    // ================= Etapa ID =================
@@ -71,10 +79,18 @@ module riscv_pipe #(
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
   logic [180:0] idex_d, idex_q;
+  
+  
+  
+  
+
+  
+  floprc #(181) idex (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idex_d), .q(idex_q));
+  
 
     // ================= Etapa EX =================
-  logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE, PCTargetE;
-  logic        ZeroE;
+  logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
+
 
   mux2 srcamux (.d0(RD1E), .d1(PCE),     .sel2(ASrcE),   .y2(SrcAE));
   mux2 srcbmux (.d0(RD2E), .d1(ImmExtE), .sel2(ALUSrcE), .y2(SrcBE));
@@ -84,6 +100,21 @@ module riscv_pipe #(
 
   adder pcaddbranch (.a(PCE), .b(ImmExtE), .sum(PCTargetE));
   assign WriteDataE = RD2E;
+
+    always_comb begin
+    case (funct3E)
+      3'b000:  TakenE =  ZeroE;   // beq
+      3'b001:  TakenE = ~ZeroE;   // bne
+      3'b100:  TakenE = ~ZeroE;   // blt
+      3'b101:  TakenE =  ZeroE;   // bge
+      3'b110:  TakenE = ~ZeroE;   // bltu
+      3'b111:  TakenE =  ZeroE;   // bgeu
+      default: TakenE = 1'b0;
+    endcase
+  end
+
+  assign PCSrcE       = JalrE ? 2'b10 : {1'b0, JumpE | (BranchE & TakenE)};
+  assign JalrTargetE  = {ALUResultE[31:1], 1'b0};
 
   // ============== Registro EX/MEM ==============
   logic [31:0] ALUResultM, WriteDataM, PCPlus4M, ImmExtM;
@@ -127,7 +158,7 @@ module riscv_pipe #(
                    RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
                    ResultSrcD, ALUControlD, funct3D};
 
-  flopr #(181) idex (.clk(clk), .rst_n(rst_n), .d(idex_d), .q(idex_q));
+  
 
   assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE,
           RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE,
