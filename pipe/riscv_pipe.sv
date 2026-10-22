@@ -2,14 +2,17 @@ module riscv_pipe #(
   parameter INIT_FILE = "mem/imem.hex"
 )(
   input logic clk,
-  input logic rst_n
+  input logic rst_n,
+  output logic [31:0] dbg
 );
+
 
   // ================= Etapa IF =================
   logic [31:0] PCTargetE, JalrTargetE;
   logic [1:0]  PCSrcE;
   logic        ZeroE, TakenE;
   logic [31:0] PCF, PCNextF, PCPlus4F, InstrF;
+  logic StallF;
 
   mux3 pcmux (.d0(PCPlus4F), .d1(PCTargetE), .d2(JalrTargetE),
               .sel3(PCSrcE), .y3(PCNextF));
@@ -24,7 +27,10 @@ module riscv_pipe #(
   logic [95:0] ifid_d, ifid_q;
   logic FlushD, FlushE;
 
-  logic StallF, StallD, lwStall;
+  logic StallD, lwStall;
+  logic [1:0]  ResultSrcE;
+  logic [4:0]  RdE;
+  logic [4:0]  rs1D, rs2D;
   assign lwStall = (ResultSrcE == 2'b01) && (RdE != 0) && (RdE == rs1D || RdE == rs2D);
   assign StallF  = lwStall;
   assign StallD  = lwStall;
@@ -40,7 +46,7 @@ module riscv_pipe #(
   assign {InstrD, PCD, PCPlus4D} = ifid_q;
 
    // ================= Etapa ID =================
-  logic [4:0]  rs1D, rs2D, rdD;
+  logic [4:0]  rdD;
   logic [2:0]  funct3D;
 
   assign rdD     = InstrD[11:7];
@@ -86,10 +92,10 @@ module riscv_pipe #(
 
   // ============== Registro ID/EX ==============
   logic [31:0] RD1E, RD2E, ImmExtE, PCE, PCPlus4E;
-  logic [4:0]  RdE;
+
   logic [4:0] Rs1E, Rs2E;
   logic        RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE;
-  logic [1:0]  ResultSrcE;
+
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
   logic [190:0] idex_d, idex_q;
@@ -117,6 +123,8 @@ module riscv_pipe #(
   logic [1:0]  ForwardAE, ForwardBE;
   logic [31:0] FwdAE, FwdBE;
   logic [31:0] FwdValM;
+  logic [4:0]  RdM;
+  logic        RegWriteM;
   forwardunit fu (.Rs1E(Rs1E), .Rs2E(Rs2E), .RdM(RdM), .RdW(RdW),
                   .RegWriteM(RegWriteM), .RegWriteW(RegWriteW),
                   .ForwardAE(ForwardAE), .ForwardBE(ForwardBE));
@@ -152,8 +160,8 @@ module riscv_pipe #(
 
   // ============== Registro EX/MEM ==============
   logic [31:0] ALUResultM, WriteDataM, PCPlus4M, ImmExtM;
-  logic [4:0]  RdM;
-  logic        RegWriteM, MemWriteM;
+
+  logic        MemWriteM;
   logic [1:0]  ResultSrcM;
   logic [2:0]  funct3M;
   logic [139:0] exmem_d, exmem_q;
@@ -194,5 +202,7 @@ module riscv_pipe #(
   mux4 resultmux (.d0(ALUResultW), .d1(ReadDataW), .d2(PCPlus4W), .d3(ImmExtW),
                   .sel4(ResultSrcW), .y4(ResultW));
 
-  
+  assign dbg = ResultW;
+
 endmodule
+  
