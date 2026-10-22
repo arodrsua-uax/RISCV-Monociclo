@@ -5,6 +5,8 @@
 ## a 10 ns: WNS +0.785 ns, WHS +0.098 ns, 0 endpoints fallando (~108 MHz maximo)
 ## Con el forwarding calculado en ID (seleccion desde registro en EX):
 ## a 10 ns: WNS +1.167 ns, WHS +0.118 ns, 0 endpoints fallando (~113 MHz maximo)
+## Con el valor reenviado desde M elegido en EX (FwdValM sale de registro):
+## a 10 ns: WNS +1.388 ns, WHS +0.102 ns, 0 endpoints fallando (~116 MHz maximo)
 ## This file is a general .xdc for the Arty A7-100 Rev. D and Rev. E
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins

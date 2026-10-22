@@ -168,21 +168,25 @@ module riscv_pipe #(
   assign JalrTargetE  = {ALUResultE[31:1], 1'b0};
 
   // ============== Registro EX/MEM ==============
-  logic [31:0] ALUResultM, WriteDataM, PCPlus4M, ImmExtM;
+  logic [31:0] ALUResultM, WriteDataM, PCPlus4M;
 
   logic        MemWriteM;
   logic [1:0]  ResultSrcM;
   logic [2:0]  funct3M;
   logic [139:0] exmem_d, exmem_q;
 
-  assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, ImmExtE, RdE,
+  // El valor que se reenvia desde M se elige ya en EX: FwdValM sale de
+  // registro y ResultSrcM no entra en el camino forwarding -> saltos
+  logic [31:0] FwdValE;
+  assign FwdValE = (ResultSrcE == 2'b11) ? ImmExtE :
+                   (ResultSrcE == 2'b10) ? PCPlus4E : ALUResultE;
+
+  assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, FwdValE, RdE,
                     RegWriteE, MemWriteE, ResultSrcE, funct3E};
   floprec #(140) exmem (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                         .d(exmem_d), .q(exmem_q));
-  assign {ALUResultM, WriteDataM, PCPlus4M, ImmExtM, RdM,
+  assign {ALUResultM, WriteDataM, PCPlus4M, FwdValM, RdM,
           RegWriteM, MemWriteM, ResultSrcM, funct3M} = exmem_q;
-  assign FwdValM = (ResultSrcM == 2'b11) ? ImmExtM :
-                   (ResultSrcM == 2'b10) ? PCPlus4M : ALUResultM;
 
   // ================= Etapa MEM =================
   logic [31:0] MemWriteData, MemReadData, ReadDataM;
@@ -198,8 +202,8 @@ module riscv_pipe #(
   // El resultado se elige en MEM: ResultW sale directamente de un registro
   // y no hay mux delante del forwarding desde WB ni del banco de registros
   logic [31:0] ResultM;
-  mux4 resultmux (.d0(ALUResultM), .d1(ReadDataM), .d2(PCPlus4M), .d3(ImmExtM),
-                  .sel4(ResultSrcM), .y4(ResultM));
+  mux2 resultmux (.d0(FwdValM), .d1(ReadDataM), .sel2(ResultSrcM == 2'b01),
+                  .y2(ResultM));
 
   // ============== Registro MEM/WB ==============
   logic [31:0] PCPlus4W;   // solo para las trazas (se elimina en sintesis)
