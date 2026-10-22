@@ -20,8 +20,13 @@ module top_pipe #(
     else              begin cnt <= cnt + 1'b1; ce <= 1'b0; end
 
   logic [31:0] dbg;
+  logic        dbg_we;
   riscv_pipe #(.INIT_FILE(INIT_FILE)) cpu
-    (.clk(clk100), .rst_n(rst_n), .ce(ce), .dbg(dbg));
+    (.clk(clk100), .rst_n(rst_n), .ce(ce), .dbg(dbg), .dbg_we(dbg_we));
 
-  assign led = dbg[3:0];
+  // Los LED solo cambian con escrituras reales en el banco de registros:
+  // ni burbujas ni escrituras en x0
+  always_ff @(posedge clk100)
+    if (!rst_n)      led <= '0;
+    else if (dbg_we) led <= dbg[3:0];
 endmodule

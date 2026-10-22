@@ -8,7 +8,7 @@ module top_pipe_test (
 
   logic [31:0] dbg;
   riscv_pipe #(.INIT_FILE("C:/proyectos/riscv_fpga/src/suma.hex")) cpu
-    (.clk(clk100), .rst_n(~s2), .ce(1'b1), .dbg(dbg));
+    (.clk(clk100), .rst_n(~s2), .ce(1'b1), .dbg(dbg), .dbg_we());
 
   assign led = dbg[3:0] ^ dbg[7:4] ^ dbg[11:8] ^ dbg[15:12];
 endmodule

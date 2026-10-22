@@ -4,7 +4,8 @@ module riscv_pipe #(
   input  logic        clk,
   input  logic        rst_n,
   input  logic        ce,
-  output logic [31:0] dbg
+  output logic [31:0] dbg,
+  output logic        dbg_we   // dbg es una escritura real en el banco
 );
 
 
@@ -225,6 +226,7 @@ module riscv_pipe #(
 
   // ================= Etapa WB =================
 
-  assign dbg = ResultW;
+  assign dbg    = ResultW;
+  assign dbg_we = RegWriteW && (RdW != 0);
 
 endmodule
