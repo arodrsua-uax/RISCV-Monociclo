@@ -11,7 +11,7 @@ build() {   # $1 = modulo superior, $2 = salida, resto = fuentes
 }
 build run_prog sim/cmp_mono.vvp rtl/*.sv tools/run_prog.sv
 build run_pipe sim/cmp_pipe.vvp rtl/*.sv pipe/floprc.sv pipe/floprec.sv \
-      pipe/forwardunit.sv pipe/riscv_pipe.sv tools/run_pipe.sv
+      pipe/forwardunit.sv pipe/sysdec.sv pipe/csrfile.sv pipe/riscv_pipe.sv tools/run_pipe.sv
 
 malos=0
 for hex in "$@"; do

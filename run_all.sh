@@ -15,7 +15,7 @@ echo "=== 1. Monociclo (run_tests.sh) ==="
 
 echo
 echo "=== 2. Pipeline (pipe/tb_pipe*.sv) ==="
-PIPE_SRC="rtl/*.sv pipe/floprc.sv pipe/floprec.sv pipe/forwardunit.sv pipe/riscv_pipe.sv"
+PIPE_SRC="rtl/*.sv pipe/floprc.sv pipe/floprec.sv pipe/forwardunit.sv pipe/sysdec.sv pipe/csrfile.sv pipe/riscv_pipe.sv"
 for tb in pipe/tb_pipe*.sv; do
   name=$(basename "$tb" .sv)
   if ! iverilog -g2012 -o "sim/$name.vvp" $PIPE_SRC "$tb" 2> "sim/$name.err"; then

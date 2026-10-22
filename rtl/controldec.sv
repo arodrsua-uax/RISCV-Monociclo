@@ -96,7 +96,8 @@ module controldec (
       end
 
       // fence: sin efecto en un nucleo en orden y sin caches (NOP).
-      // ecall/ebreak: control a cero; el pipeline las detecta aparte (halt)
+      // system: control a cero; el pipeline decodifica aparte ecall, ebreak,
+      // mret y CSR (pipe/sysdec.sv)
       7'b0001111, 7'b1110011: ;
     endcase
   end

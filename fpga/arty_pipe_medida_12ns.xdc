@@ -14,6 +14,9 @@
 ## Hasta aqui imem era una ROM con suma.hex y Vivado especializaba el diseno.
 ## Con imem escribible (top_pipe_test la carga desde btn), medida independiente
 ## del programa: WNS +1.177 ns, WHS +0.049 ns, 0 endpoints fallando (~113 MHz)
+## Con excepciones en modo M y Zicsr (imem escribible, sin especializar):
+## WNS +1.228 ns, WHS +0.049 ns, 0 endpoints fallando (~114 MHz). Camino
+## critico: ALU -> destino de jalr -> mux del PC -> pcreg
 ## This file is a general .xdc for the Arty A7-100 Rev. D and Rev. E
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins
