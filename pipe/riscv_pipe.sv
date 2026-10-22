@@ -69,7 +69,8 @@ module riscv_pipe #(
     .ALUSrc(ALUSrcD), .ASrc(ASrcD), .ALUControl(ALUControlD)
   );
 
-  // Banco de registros: lectura en ID; escritura desde WB (solo en pulsos ce)
+  // Banco de registros: lectura en ID; escritura desde WB (solo en pulsos ce).
+  // Sin reset para que vaya a LUTRAM
   logic [31:0] RD1D, RD2D, ImmExtD;
   logic        RegWriteW;
   logic [4:0]  RdW;
@@ -78,7 +79,7 @@ module riscv_pipe #(
 
   assign opD = InstrD[6:0];
 
-  regfile rf (
+  regfile #(.RESET(0)) rf (
     .clk(clk), .rst_n(rst_n),
     .rs1_addr(rs1D), .rs2_addr(rs2D), .rd_addr(RdW),
     .rd_data(ResultW), .rd_write_en(RegWriteW & ce),
