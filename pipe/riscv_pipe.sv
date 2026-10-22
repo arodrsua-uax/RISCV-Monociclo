@@ -5,7 +5,8 @@ module riscv_pipe #(
   input  logic        rst_n,
   input  logic        ce,
   output logic [31:0] dbg,
-  output logic        dbg_we   // dbg es una escritura real en el banco
+  output logic        dbg_we,  // dbg es una escritura real en el banco
+  output logic        halt     // ecall/ebreak retirada: el pipeline esta parado
 );
 
 
@@ -29,6 +30,7 @@ module riscv_pipe #(
   logic [63:0] ifidp_d, ifidp_q;
   logic FlushD, FlushE;
   logic ValidD;
+  logic HaltE, Halted;
 
   logic StallD, lwStall;
   logic [1:0]  ResultSrcE;
@@ -118,22 +120,37 @@ module riscv_pipe #(
                   .ForwardAE(ForwardAD), .ForwardBE(ForwardBD));
 
   logic [177:0] idexd_d, idexd_q;   // datos y control sin vaciar
-  logic [6:0]   idexc_d, idexc_q;   // control que se vacia
+  logic [7:0]   idexc_d, idexc_q;   // control que se vacia
+
+  // ecall y ebreak paran el procesador (no hay excepciones ni CSR).
+  // fence no necesita nada: el control sale a cero y es un NOP
+  logic HaltD;
+  assign HaltD = (opD == 7'b1110011) && (funct3D == 3'b000);
 
   assign idexd_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD,
                     ForwardAD, ForwardBD, ALUSrcD, ASrcD, ALUControlD, funct3D};
-  assign idexc_d = ValidD ? {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD}
-                          : 7'b0;
+  // ecall/ebreak en EX (o ya parado): lo anterior sigue hacia M y W y a EX
+  // solo entran burbujas. Se anula aqui y no en FlushE para no alargar el
+  // camino PCSrcE -> idexc; IF e ID siguen leyendo, pero nada se ejecuta
+  logic IssueD;
+  assign IssueD  = ValidD && !HaltE && !Halted;
+  assign idexc_d = IssueD ? {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD,
+                            HaltD}
+                          : 8'b0;
 
   floprec #(178) idexd (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                         .d(idexd_d), .q(idexd_q));
-  floprc  #(7)   idexc (.clk(clk), .rst_n(rst_n), .ce(ce), .clr(FlushE),
+  floprc  #(8)   idexc (.clk(clk), .rst_n(rst_n), .ce(ce), .clr(FlushE),
                         .d(idexc_d), .q(idexc_q));
 
   logic [1:0]  ForwardAE, ForwardBE;
   assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE,
           ForwardAE, ForwardBE, ALUSrcE, ASrcE, ALUControlE, funct3E} = idexd_q;
-  assign {RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ResultSrcE} = idexc_q;
+  assign {RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ResultSrcE, HaltE} = idexc_q;
+
+  // Queda a 1 desde que ecall/ebreak pasa de EX a M
+  floprec #(1) haltreg (.clk(clk), .rst_n(rst_n), .ce(ce), .en(HaltE), .clr(1'b0),
+                        .d(1'b1), .q(Halted));
 
   // ================= Etapa EX =================
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
@@ -181,7 +198,8 @@ module riscv_pipe #(
   logic        MemWriteM;
   logic [1:0]  ResultSrcM;
   logic [2:0]  funct3M;
-  logic [139:0] exmem_d, exmem_q;
+  logic [140:0] exmem_d, exmem_q;
+  logic         HaltM;
 
   // El valor que se reenvia desde M se elige ya en EX: FwdValM sale de
   // registro y ResultSrcM no entra en el camino forwarding -> saltos
@@ -190,11 +208,11 @@ module riscv_pipe #(
                    (ResultSrcE == 2'b10) ? PCPlus4E : ALUResultE;
 
   assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, FwdValE, RdE,
-                    RegWriteE, MemWriteE, ResultSrcE, funct3E};
-  floprec #(140) exmem (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+                    RegWriteE, MemWriteE, ResultSrcE, funct3E, HaltE};
+  floprec #(141) exmem (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                         .d(exmem_d), .q(exmem_q));
   assign {ALUResultM, WriteDataM, PCPlus4M, FwdValM, RdM,
-          RegWriteM, MemWriteM, ResultSrcM, funct3M} = exmem_q;
+          RegWriteM, MemWriteM, ResultSrcM, funct3M, HaltM} = exmem_q;
 
   // ================= Etapa MEM =================
   logic [31:0] MemWriteData, MemReadData, ReadDataM;
@@ -215,18 +233,23 @@ module riscv_pipe #(
 
   // ============== Registro MEM/WB ==============
   logic [31:0] PCPlus4W;   // solo para las trazas (se elimina en sintesis)
-  logic [69:0] memwb_d, memwb_q;
+  logic [70:0] memwb_d, memwb_q;
+  logic        HaltW;
 
-  assign memwb_d = {ResultM, PCPlus4M, RdM, RegWriteM};
+  assign memwb_d = {ResultM, PCPlus4M, RdM, RegWriteM, HaltM};
 
-  floprec #(70) memwb (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+  floprec #(71) memwb (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                        .d(memwb_d), .q(memwb_q));
 
-  assign {ResultW, PCPlus4W, RdW, RegWriteW} = memwb_q;
+  assign {ResultW, PCPlus4W, RdW, RegWriteW, HaltW} = memwb_q;
 
   // ================= Etapa WB =================
 
   assign dbg    = ResultW;
   assign dbg_we = RegWriteW && (RdW != 0);
+
+  // halt sube cuando ecall/ebreak sale de WB: todo lo anterior ya escribio
+  floprec #(1) donereg (.clk(clk), .rst_n(rst_n), .ce(ce), .en(HaltW), .clr(1'b0),
+                        .d(1'b1), .q(halt));
 
 endmodule

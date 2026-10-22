@@ -94,6 +94,10 @@ module controldec (
         ALUControl = 4'b0000; // add
         Jalr       = 1;
       end
+
+      // fence: sin efecto en un nucleo en orden y sin caches (NOP).
+      // ecall/ebreak: control a cero; el pipeline las detecta aparte (halt)
+      7'b0001111, 7'b1110011: ;
     endcase
   end
 endmodule
