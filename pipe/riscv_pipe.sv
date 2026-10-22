@@ -191,21 +191,24 @@ module riscv_pipe #(
   loadext le (.funct3(funct3M), .addr(ALUResultM[1:0]), .mem_data(MemReadData),
               .read_data(ReadDataM));
 
+  // El resultado se elige en MEM: ResultW sale directamente de un registro
+  // y no hay mux delante del forwarding desde WB ni del banco de registros
+  logic [31:0] ResultM;
+  mux4 resultmux (.d0(ALUResultM), .d1(ReadDataM), .d2(PCPlus4M), .d3(ImmExtM),
+                  .sel4(ResultSrcM), .y4(ResultM));
+
   // ============== Registro MEM/WB ==============
-  logic [31:0] ALUResultW, ReadDataW, PCPlus4W, ImmExtW;
-  logic [1:0]  ResultSrcW;
-  logic [135:0] memwb_d, memwb_q;
+  logic [31:0] PCPlus4W;   // solo para las trazas (se elimina en sintesis)
+  logic [69:0] memwb_d, memwb_q;
 
-  assign memwb_d = {ALUResultM, ReadDataM, PCPlus4M, ImmExtM, RdM, RegWriteM, ResultSrcM};
+  assign memwb_d = {ResultM, PCPlus4M, RdM, RegWriteM};
 
-  floprec #(136) memwb (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
-                        .d(memwb_d), .q(memwb_q));
+  floprec #(70) memwb (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+                       .d(memwb_d), .q(memwb_q));
 
-  assign {ALUResultW, ReadDataW, PCPlus4W, ImmExtW, RdW, RegWriteW, ResultSrcW} = memwb_q;
+  assign {ResultW, PCPlus4W, RdW, RegWriteW} = memwb_q;
 
   // ================= Etapa WB =================
-  mux4 resultmux (.d0(ALUResultW), .d1(ReadDataW), .d2(PCPlus4W), .d3(ImmExtW),
-                  .sel4(ResultSrcW), .y4(ResultW));
 
   assign dbg = ResultW;
 
