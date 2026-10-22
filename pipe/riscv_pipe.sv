@@ -1,8 +1,9 @@
 module riscv_pipe #(
   parameter INIT_FILE = "mem/imem.hex"
 )(
-  input logic clk,
-  input logic rst_n,
+  input  logic        clk,
+  input  logic        rst_n,
+  input  logic        ce,
   output logic [31:0] dbg
 );
 
@@ -17,7 +18,7 @@ module riscv_pipe #(
   mux3 pcmux (.d0(PCPlus4F), .d1(PCTargetE), .d2(JalrTargetE),
               .sel3(PCSrcE), .y3(PCNextF));
 
-  floprec pcreg  (.clk(clk), .rst_n(rst_n), .en(!StallF), .clr(1'b0),
+  floprec pcreg  (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallF), .clr(1'b0),
                 .d(PCNextF), .q(PCF));
   adder pcadd4 (.a(PCF), .b(32'd4), .sum(PCPlus4F));
   imem #(.INIT_FILE(INIT_FILE)) im (.addr(PCF), .instr(InstrF));
@@ -37,17 +38,17 @@ module riscv_pipe #(
 
 
   assign FlushD = (PCSrcE != 2'b00);
-    assign FlushE = (PCSrcE != 2'b00) || lwStall;
+  assign FlushE = (PCSrcE != 2'b00) || lwStall;
 
   assign ifidp_d = {PCF, PCPlus4F};
 
-  floprec #(32) ifidi (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(FlushD),
+  floprec #(32) ifidi (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(FlushD),
                        .d(InstrF), .q(InstrD));
-  floprec #(64) ifidp (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(1'b0),
+  floprec #(64) ifidp (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(1'b0),
                        .d(ifidp_d), .q(ifidp_q));
   assign {PCD, PCPlus4D} = ifidp_q;
 
-   // ================= Etapa ID =================
+  // ================= Etapa ID =================
   logic [4:0]  rdD;
   logic [2:0]  funct3D;
 
@@ -68,24 +69,22 @@ module riscv_pipe #(
     .ALUSrc(ALUSrcD), .ASrc(ASrcD), .ALUControl(ALUControlD)
   );
 
-  // Banco de registros: lectura en ID; la escritura llegará de WB (paso 3)
+  // Banco de registros: lectura en ID; escritura desde WB (solo en pulsos ce)
   logic [31:0] RD1D, RD2D, ImmExtD;
   logic        RegWriteW;
   logic [4:0]  RdW;
   logic [31:0] ResultW;
-  logic [6:0] opD;
-
-
+  logic [6:0]  opD;
 
   assign opD = InstrD[6:0];
 
   regfile rf (
     .clk(clk), .rst_n(rst_n),
     .rs1_addr(rs1D), .rs2_addr(rs2D), .rd_addr(RdW),
-    .rd_data(ResultW), .rd_write_en(RegWriteW),
+    .rd_data(ResultW), .rd_write_en(RegWriteW & ce),
     .rs1_data(RD1D), .rs2_data(RD2D)
   );
-  
+
   logic [31:0] RD1Dfix, RD2Dfix;
   assign RD1Dfix = (RegWriteW && RdW != 0 && RdW == rs1D) ? ResultW : RD1D;
   assign RD2Dfix = (RegWriteW && RdW != 0 && RdW == rs2D) ? ResultW : RD2D;
@@ -108,16 +107,17 @@ module riscv_pipe #(
                     ALUSrcD, ASrcD, ALUControlD, funct3D};
   assign idexc_d = {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD};
 
-  flopr  #(184) idexd (.clk(clk), .rst_n(rst_n), .d(idexd_d), .q(idexd_q));
-  floprc #(7)   idexc (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idexc_d), .q(idexc_q));
+  floprec #(184) idexd (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+                        .d(idexd_d), .q(idexd_q));
+  floprc  #(7)   idexc (.clk(clk), .rst_n(rst_n), .ce(ce), .clr(FlushE),
+                        .d(idexc_d), .q(idexc_q));
 
   assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE, Rs1E, Rs2E,
           ALUSrcE, ASrcE, ALUControlE, funct3E} = idexd_q;
   assign {RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ResultSrcE} = idexc_q;
-  
-    // ================= Etapa EX =================
-  logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
+  // ================= Etapa EX =================
+  logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
   logic [1:0]  ForwardAE, ForwardBE;
   logic [31:0] FwdAE, FwdBE;
@@ -128,7 +128,6 @@ module riscv_pipe #(
                   .RegWriteM(RegWriteM), .RegWriteW(RegWriteW),
                   .ForwardAE(ForwardAE), .ForwardBE(ForwardBE));
 
-  
   mux3 fwdamux (.d0(RD1E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardAE), .y3(FwdAE));
   mux3 fwdbmux (.d0(RD2E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardBE), .y3(FwdBE));
 
@@ -141,8 +140,7 @@ module riscv_pipe #(
 
   adder pcaddbranch (.a(PCE), .b(ImmExtE), .sum(PCTargetE));
 
-
-    always_comb begin
+  always_comb begin
     case (funct3E)
       3'b000:  TakenE =  ZeroE;   // beq
       3'b001:  TakenE = ~ZeroE;   // bne
@@ -164,11 +162,11 @@ module riscv_pipe #(
   logic [1:0]  ResultSrcM;
   logic [2:0]  funct3M;
   logic [139:0] exmem_d, exmem_q;
-  
 
   assign exmem_d = {ALUResultE, WriteDataE, PCPlus4E, ImmExtE, RdE,
                     RegWriteE, MemWriteE, ResultSrcE, funct3E};
-  flopr #(140) exmem (.clk(clk), .rst_n(rst_n), .d(exmem_d), .q(exmem_q));
+  floprec #(140) exmem (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+                        .d(exmem_d), .q(exmem_q));
   assign {ALUResultM, WriteDataM, PCPlus4M, ImmExtM, RdM,
           RegWriteM, MemWriteM, ResultSrcM, funct3M} = exmem_q;
   assign FwdValM = (ResultSrcM == 2'b11) ? ImmExtM :
@@ -180,7 +178,7 @@ module riscv_pipe #(
 
   storealign sa (.funct3(funct3M), .addr(ALUResultM[1:0]), .rs2_data(WriteDataM),
                  .write_data(MemWriteData), .byte_en(ByteEn));
-  dmem dm (.clk(clk), .mem_write_en(MemWriteM), .byte_en(ByteEn), .addr(ALUResultM),
+  dmem dm (.clk(clk), .mem_write_en(MemWriteM & ce), .byte_en(ByteEn), .addr(ALUResultM),
            .write_data(MemWriteData), .read_data(MemReadData));
   loadext le (.funct3(funct3M), .addr(ALUResultM[1:0]), .mem_data(MemReadData),
               .read_data(ReadDataM));
@@ -192,8 +190,8 @@ module riscv_pipe #(
 
   assign memwb_d = {ALUResultM, ReadDataM, PCPlus4M, ImmExtM, RdM, RegWriteM, ResultSrcM};
 
-  flopr #(136) memwb (.clk(clk), .rst_n(rst_n), .d(memwb_d), .q(memwb_q));
-
+  floprec #(136) memwb (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+                        .d(memwb_d), .q(memwb_q));
 
   assign {ALUResultW, ReadDataW, PCPlus4W, ImmExtW, RdW, RegWriteW, ResultSrcW} = memwb_q;
 
@@ -204,4 +202,3 @@ module riscv_pipe #(
   assign dbg = ResultW;
 
 endmodule
-  

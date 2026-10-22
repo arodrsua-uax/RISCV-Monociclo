@@ -2,7 +2,7 @@ module tb_pipe5;
   logic clk = 0, rst_n;
   integer fallos = 0;
 
-  riscv_pipe #(.INIT_FILE("mem/test_pipe5.hex")) dut (.clk(clk), .rst_n(rst_n));
+  riscv_pipe #(.INIT_FILE("mem/test_pipe5.hex")) dut (.clk(clk), .rst_n(rst_n), .ce(1'b1));
 
   always #5 clk = ~clk;
 

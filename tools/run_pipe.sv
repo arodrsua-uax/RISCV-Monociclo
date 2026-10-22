@@ -3,7 +3,7 @@ module run_pipe;
   string  prog;
   integer cycles, i;
 
-  riscv_pipe dut (.clk(clk), .rst_n(rst_n));
+  riscv_pipe dut (.clk(clk), .rst_n(rst_n), .ce(1'b1));
 
 
   always #5 clk = ~clk;
