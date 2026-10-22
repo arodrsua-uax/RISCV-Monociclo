@@ -27,12 +27,14 @@ module riscv_pipe #(
   logic [31:0] InstrD, PCD, PCPlus4D;
   logic [63:0] ifidp_d, ifidp_q;
   logic FlushD, FlushE;
+  logic ValidD;
 
   logic StallD, lwStall;
   logic [1:0]  ResultSrcE;
   logic [4:0]  RdE;
   logic [4:0]  rs1D, rs2D;
-  assign lwStall = (ResultSrcE == 2'b01) && (RdE != 0) && (RdE == rs1D || RdE == rs2D);
+  assign lwStall = ValidD && (ResultSrcE == 2'b01) && (RdE != 0) &&
+                   (RdE == rs1D || RdE == rs2D);
   assign StallF  = lwStall;
   assign StallD  = lwStall;
 
@@ -42,8 +44,12 @@ module riscv_pipe #(
 
   assign ifidp_d = {PCF, PCPlus4F};
 
-  floprec #(32) ifidi (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(FlushD),
+  // El vaciado de IF/ID no toca InstrD: solo baja ValidD y en ID se anula
+  // el control. Asi PCSrcE llega a un flip-flop y no al CE de 32
+  floprec #(32) ifidi (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(1'b0),
                        .d(InstrF), .q(InstrD));
+  floprec #(1)  ifidv (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(FlushD),
+                       .d(1'b1), .q(ValidD));
   floprec #(64) ifidp (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallD), .clr(1'b0),
                        .d(ifidp_d), .q(ifidp_q));
   assign {PCD, PCPlus4D} = ifidp_q;
@@ -115,7 +121,8 @@ module riscv_pipe #(
 
   assign idexd_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD,
                     ForwardAD, ForwardBD, ALUSrcD, ASrcD, ALUControlD, funct3D};
-  assign idexc_d = {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD};
+  assign idexc_d = ValidD ? {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD}
+                          : 7'b0;
 
   floprec #(178) idexd (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                         .d(idexd_d), .q(idexd_q));
