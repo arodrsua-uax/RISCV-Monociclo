@@ -1,6 +1,8 @@
 ## Arty A7-100T, pipeline RV32I (riscv_pipe) + top_pipe_test
 ## Periodo 12.50 ns (80 MHz): WNS +0.230 ns, WHS +0.126 ns, 0 endpoints fallando
 ## Vivado 2026.1, xc7a100tcsg324-1. A 10 ns: WNS -1.704 ns (~85 MHz maximo)
+## Tras banco en LUTRAM, comparador de saltos y resultado en MEM (f0cda57):
+## a 10 ns: WNS +0.785 ns, WHS +0.098 ns, 0 endpoints fallando (~108 MHz maximo)
 ## This file is a general .xdc for the Arty A7-100 Rev. D and Rev. E
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins
