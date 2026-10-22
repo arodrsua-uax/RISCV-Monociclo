@@ -99,16 +99,19 @@ module riscv_pipe #(
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
 
-  logic [190:0] idex_d, idex_q;
-  assign idex_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD, rs1D, rs2D,
-                   RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
-                   ResultSrcD, ALUControlD, funct3D};
-  floprc #(191) idex (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idex_d), .q(idex_q));
+  logic [183:0] idexd_d, idexd_q;   // datos y control sin vaciar
+  logic [6:0]   idexc_d, idexc_q;   // control que se vacia
+
+  assign idexd_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD, rs1D, rs2D,
+                    ALUSrcD, ASrcD, ALUControlD, funct3D};
+  assign idexc_d = {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD};
+
+  flopr  #(184) idexd (.clk(clk), .rst_n(rst_n), .d(idexd_d), .q(idexd_q));
+  floprc #(7)   idexc (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idexc_d), .q(idexc_q));
+
   assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE, Rs1E, Rs2E,
-          RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE,
-          ResultSrcE, ALUControlE, funct3E} = idex_q;
- 
- 
+          ALUSrcE, ASrcE, ALUControlE, funct3E} = idexd_q;
+  assign {RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ResultSrcE} = idexc_q;
   
     // ================= Etapa EX =================
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
