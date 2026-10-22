@@ -24,7 +24,7 @@ module riscv_pipe #(
 
   // ============== Registro IF/ID ==============
   logic [31:0] InstrD, PCD, PCPlus4D;
-  logic [95:0] ifid_d, ifid_q;
+  logic [63:0] ifidp_d, ifidp_q;
   logic FlushD, FlushE;
 
   logic StallD, lwStall;
@@ -39,11 +39,13 @@ module riscv_pipe #(
   assign FlushD = (PCSrcE != 2'b00);
     assign FlushE = (PCSrcE != 2'b00) || lwStall;
 
- floprec #(96)  ifid  (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(FlushD),
-                      .d(ifid_d), .q(ifid_q));
-  
-  assign ifid_d = {InstrF, PCF, PCPlus4F};
-  assign {InstrD, PCD, PCPlus4D} = ifid_q;
+  assign ifidp_d = {PCF, PCPlus4F};
+
+  floprec #(32) ifidi (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(FlushD),
+                       .d(InstrF), .q(InstrD));
+  floprec #(64) ifidp (.clk(clk), .rst_n(rst_n), .en(!StallD), .clr(1'b0),
+                       .d(ifidp_d), .q(ifidp_q));
+  assign {PCD, PCPlus4D} = ifidp_q;
 
    // ================= Etapa ID =================
   logic [4:0]  rdD;
