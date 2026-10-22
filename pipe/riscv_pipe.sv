@@ -6,7 +6,11 @@ module riscv_pipe #(
   input  logic        ce,
   output logic [31:0] dbg,
   output logic        dbg_we,  // dbg es una escritura real en el banco
-  output logic        halt     // ecall/ebreak retirada: el pipeline esta parado
+  output logic        halt,    // ecall/ebreak retirada: el pipeline esta parado
+  // Carga de la memoria de instrucciones (opcional, sin conectar queda a 0)
+  input  logic        imem_we    = 1'b0,
+  input  logic [31:0] imem_waddr = '0,
+  input  logic [31:0] imem_wdata = '0
 );
 
 
@@ -23,7 +27,9 @@ module riscv_pipe #(
   floprec pcreg  (.clk(clk), .rst_n(rst_n), .ce(ce), .en(!StallF), .clr(1'b0),
                 .d(PCNextF), .q(PCF));
   adder pcadd4 (.a(PCF), .b(32'd4), .sum(PCPlus4F));
-  imem #(.INIT_FILE(INIT_FILE)) im (.addr(PCF), .instr(InstrF));
+  imem #(.INIT_FILE(INIT_FILE)) im (.addr(PCF), .instr(InstrF),
+                                    .clk(clk), .we(imem_we), .waddr(imem_waddr),
+                                    .wdata(imem_wdata));
 
   // ============== Registro IF/ID ==============
   logic [31:0] InstrD, PCD, PCPlus4D;

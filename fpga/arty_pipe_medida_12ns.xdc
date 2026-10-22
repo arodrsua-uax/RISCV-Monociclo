@@ -11,6 +11,9 @@
 ## a 10 ns: WNS +1.729 ns, WHS +0.093 ns, 0 endpoints fallando (~121 MHz maximo)
 ## Con fence/ecall/ebreak (RV32I completo, halt anulando la entrada a EX):
 ## a 10 ns: WNS +2.049 ns, WHS +0.104 ns, 0 endpoints fallando (~126 MHz maximo)
+## Hasta aqui imem era una ROM con suma.hex y Vivado especializaba el diseno.
+## Con imem escribible (top_pipe_test la carga desde btn), medida independiente
+## del programa: WNS +1.177 ns, WHS +0.049 ns, 0 endpoints fallando (~113 MHz)
 ## This file is a general .xdc for the Arty A7-100 Rev. D and Rev. E
 ## To use it in a project:
 ## - uncomment the lines corresponding to used pins

@@ -3,7 +3,7 @@ module tb_mem;
   logic [31:0] a_i, rd_i;
   logic [31:0] a_d, write_data, rd_d;
 
-  imem #(.INIT_FILE("mem/test_imem.hex")) dut_i (a_i, rd_i);
+  imem #(.INIT_FILE("mem/test_imem.hex")) dut_i (.addr(a_i), .instr(rd_i));
   dmem dut_d (clk, mem_write_en, 4'b1111, a_d, write_data, rd_d);
 
   always #5 clk = ~clk;   // flancos de subida en t=5, 15, 25...
