@@ -11,7 +11,7 @@ module riscv_pipe #(
   // ================= Etapa IF =================
   logic [31:0] PCTargetE, JalrTargetE;
   logic [1:0]  PCSrcE;
-  logic        ZeroE, TakenE;
+  logic        TakenE;
   logic [31:0] PCF, PCNextF, PCPlus4F, InstrF;
   logic StallF;
 
@@ -137,18 +137,25 @@ module riscv_pipe #(
   assign WriteDataE = FwdBE;
 
   alu alu0 (.a(SrcAE), .b(SrcBE), .alucontrol(ALUControlE),
-            .result(ALUResultE), .zero(ZeroE));
+            .result(ALUResultE), .zero());
 
   adder pcaddbranch (.a(PCE), .b(ImmExtE), .sum(PCTargetE));
 
+  // Comparador propio para los saltos: no espera al resultado de la ALU
+  // ni a la deteccion de cero (camino critico hacia el PC)
+  logic EqE, LtE, LtuE;
+  assign EqE  = (FwdAE == FwdBE);
+  assign LtE  = ($signed(FwdAE) < $signed(FwdBE));
+  assign LtuE = (FwdAE < FwdBE);
+
   always_comb begin
     case (funct3E)
-      3'b000:  TakenE =  ZeroE;   // beq
-      3'b001:  TakenE = ~ZeroE;   // bne
-      3'b100:  TakenE = ~ZeroE;   // blt
-      3'b101:  TakenE =  ZeroE;   // bge
-      3'b110:  TakenE = ~ZeroE;   // bltu
-      3'b111:  TakenE =  ZeroE;   // bgeu
+      3'b000:  TakenE =  EqE;    // beq
+      3'b001:  TakenE = ~EqE;    // bne
+      3'b100:  TakenE =  LtE;    // blt
+      3'b101:  TakenE = ~LtE;    // bge
+      3'b110:  TakenE =  LtuE;   // bltu
+      3'b111:  TakenE = ~LtuE;   // bgeu
       default: TakenE = 1'b0;
     endcase
   end
