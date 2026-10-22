@@ -98,24 +98,18 @@ module riscv_pipe #(
 
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
-  logic [190:0] idex_d, idex_q;
 
+  logic [190:0] idex_d, idex_q;
   assign idex_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD, rs1D, rs2D,
                    RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ALUSrcD, ASrcD,
                    ResultSrcD, ALUControlD, funct3D};
-
   floprc #(191) idex (.clk(clk), .rst_n(rst_n), .clr(FlushE), .d(idex_d), .q(idex_q));
-
   assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE, Rs1E, Rs2E,
           RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE,
           ResultSrcE, ALUControlE, funct3E} = idex_q;
+ 
+ 
   
-  
-  
-
-  
-  
-
     // ================= Etapa EX =================
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
