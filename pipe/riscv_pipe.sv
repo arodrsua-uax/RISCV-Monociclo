@@ -95,39 +95,43 @@ module riscv_pipe #(
   // ============== Registro ID/EX ==============
   logic [31:0] RD1E, RD2E, ImmExtE, PCE, PCPlus4E;
 
-  logic [4:0] Rs1E, Rs2E;
   logic        RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ALUSrcE, ASrcE;
 
   logic [3:0]  ALUControlE;
   logic [2:0]  funct3E;
 
-  logic [183:0] idexd_d, idexd_q;   // datos y control sin vaciar
+  // Forwarding calculado en ID: lo que hoy esta en E estara en M y lo que
+  // esta en M estara en W cuando esta instruccion llegue a EX (exmem y memwb
+  // avanzan en cada ce). La seleccion sale de registro en EX
+  logic [1:0]  ForwardAD, ForwardBD;
+  logic [4:0]  RdM;
+  logic        RegWriteM;
+  forwardunit fu (.Rs1E(rs1D), .Rs2E(rs2D), .RdM(RdE), .RdW(RdM),
+                  .RegWriteM(RegWriteE), .RegWriteW(RegWriteM),
+                  .ForwardAE(ForwardAD), .ForwardBE(ForwardBD));
+
+  logic [177:0] idexd_d, idexd_q;   // datos y control sin vaciar
   logic [6:0]   idexc_d, idexc_q;   // control que se vacia
 
-  assign idexd_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD, rs1D, rs2D,
-                    ALUSrcD, ASrcD, ALUControlD, funct3D};
+  assign idexd_d = {RD1Dfix, RD2Dfix, ImmExtD, PCD, PCPlus4D, rdD,
+                    ForwardAD, ForwardBD, ALUSrcD, ASrcD, ALUControlD, funct3D};
   assign idexc_d = {RegWriteD, MemWriteD, BranchD, JumpD, JalrD, ResultSrcD};
 
-  floprec #(184) idexd (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
+  floprec #(178) idexd (.clk(clk), .rst_n(rst_n), .ce(ce), .en(1'b1), .clr(1'b0),
                         .d(idexd_d), .q(idexd_q));
   floprc  #(7)   idexc (.clk(clk), .rst_n(rst_n), .ce(ce), .clr(FlushE),
                         .d(idexc_d), .q(idexc_q));
 
-  assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE, Rs1E, Rs2E,
-          ALUSrcE, ASrcE, ALUControlE, funct3E} = idexd_q;
+  logic [1:0]  ForwardAE, ForwardBE;
+  assign {RD1E, RD2E, ImmExtE, PCE, PCPlus4E, RdE,
+          ForwardAE, ForwardBE, ALUSrcE, ASrcE, ALUControlE, funct3E} = idexd_q;
   assign {RegWriteE, MemWriteE, BranchE, JumpE, JalrE, ResultSrcE} = idexc_q;
 
   // ================= Etapa EX =================
   logic [31:0] SrcAE, SrcBE, ALUResultE, WriteDataE;
 
-  logic [1:0]  ForwardAE, ForwardBE;
   logic [31:0] FwdAE, FwdBE;
   logic [31:0] FwdValM;
-  logic [4:0]  RdM;
-  logic        RegWriteM;
-  forwardunit fu (.Rs1E(Rs1E), .Rs2E(Rs2E), .RdM(RdM), .RdW(RdW),
-                  .RegWriteM(RegWriteM), .RegWriteW(RegWriteW),
-                  .ForwardAE(ForwardAE), .ForwardBE(ForwardBE));
 
   mux3 fwdamux (.d0(RD1E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardAE), .y3(FwdAE));
   mux3 fwdbmux (.d0(RD2E), .d1(ResultW), .d2(FwdValM), .sel3(ForwardBE), .y3(FwdBE));
